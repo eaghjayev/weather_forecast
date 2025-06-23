@@ -1,5 +1,6 @@
 import streamlit as st
 import plotly.express as px
+from backend import get_data
 
 st.title("Weather Forecast for the Next Days")
 place = st.text_input("Place: ")
@@ -9,11 +10,26 @@ option = st.selectbox("Select data to view: ",options=("Temperature", "Sky"))
 
 st.subheader(f"{option} for the next {days} days in {place}")
 
-def get_data(days):
-    dates = ["2022-25-10", "2022-26-10", "2022-27-10", "2022-28-10", "2022-29-10"]
-    temperatures = [10, 11, 15, 20, 5]
-    return dates[:days], temperatures[:days]
+try:
+    if place:
+        filtered_data = get_data(place, days)
 
-d, t = get_data(days)
-figure=px.line(x=d, y=t, labels={"x": "Date", "y": "Temperature"})
-st.plotly_chart(figure)
+        if option == "Temperature":
+            temperatures = [dict["main"]["temp"] for dict in filtered_data]
+            temperatures = [temp/10 for temp in temperatures]
+            dates = [dict["dt_txt"] for dict in filtered_data]
+            figure=px.line(x=dates, y=temperatures, labels={"x": "Date", "y": "Temperature"})
+            st.plotly_chart(figure)
+
+        elif option == "Sky":
+            sky_conditions = [dict["weather"][0]["main"] for dict in filtered_data]
+            images = {
+                "Clear": "images/clear.png",
+                "Clouds": "images/cloud.png",
+                "Rain": "images/rain.png",
+                "Snow": "images/snow.png",
+            }
+            image_paths = [images[condition] for condition in sky_conditions]
+            st.image(image_paths, width=115)
+except KeyError:
+    st.warning("Please enter a valid place")
